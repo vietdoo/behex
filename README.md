@@ -80,9 +80,9 @@ make db-downgrade       # Rollback last migration
 
 ## 🌐 Service Endpoints
 
-- **API**: http://localhost:8000
-- **API Documentation**: http://localhost:8000/docs
-- **Redoc Documentation**: http://localhost:8000/redoc
+- **API**: http://localhost:10000
+- **API Documentation**: http://localhost:10000/docs
+- **Redoc Documentation**: http://localhost:10000/redoc
 - **PostgreSQL**: localhost:5432
 - **Redis**: localhost:6379
 - **MinIO API**: localhost:9000

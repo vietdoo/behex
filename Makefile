@@ -31,8 +31,8 @@ help:
 	@echo "  shell             - Access application container shell"
 	@echo ""
 	@echo "🌐 Service URLs:"
-	@echo "  • API: http://localhost:8000"
-	@echo "  • API Docs: http://localhost:8000/docs"
+	@echo "  • API: http://localhost:10000"
+	@echo "  • API Docs: http://localhost:10000/docs"
 	@echo "  • MinIO Console: http://localhost:9001"
 
 # Initial setup
@@ -75,8 +75,8 @@ app: create-network
 	@docker-compose ps
 	@echo ""
 	@echo "🌐 Application available at:"
-	@echo "  • API: http://localhost:8000"
-	@echo "  • API Docs: http://localhost:8000/docs"
+	@echo "  • API: http://localhost:10000"
+	@echo "  • API Docs: http://localhost:10000/docs"
 
 app-down:
 	@echo "⏹️  Stopping application..."
@@ -124,8 +124,8 @@ dev-setup: infrastructure
 	@echo "🎉 Development environment ready!"
 	@echo ""
 	@echo "🌐 Available Services:"
-	@echo "  • API: http://localhost:8000"
-	@echo "  • API Docs: http://localhost:8000/docs"
+	@echo "  • API: http://localhost:10000"
+	@echo "  • API Docs: http://localhost:10000/docs"
 	@echo "  • MinIO Console: http://localhost:9001"
 	@echo ""
 	@echo "📖 Next steps:"

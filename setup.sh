@@ -41,7 +41,7 @@ JWT_REFRESH_TOKEN_EXPIRE_DAYS=7
 # Google OAuth Configuration
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
-GOOGLE_REDIRECT_URI=http://localhost:8000/api/v1/auth/google/callback
+GOOGLE_REDIRECT_URI=http://localhost:10000/api/v1/auth/google/callback
 
 # Email Configuration
 SMTP_HOST=smtp.gmail.com
@@ -82,8 +82,8 @@ echo ""
 echo "🎉 Setup complete!"
 echo ""
 echo "🌐 Service URLs:"
-echo "  • API: http://localhost:8000"
-echo "  • API Docs: http://localhost:8000/docs"
+echo "  • API: http://localhost:10000"
+echo "  • API Docs: http://localhost:10000/docs"
 echo "  • MinIO Console: http://localhost:9001"
 echo "  • PostgreSQL: localhost:5432"
 echo "  • Redis: localhost:6379"

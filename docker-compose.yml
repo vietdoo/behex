@@ -14,7 +14,7 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
     ports:
-      - "8000:8000"
+      - "10000:10000"
     volumes:
       - ./app:/app/app
       - ./alembic:/app/alembic
@@ -24,7 +24,7 @@ services:
         echo 'Waiting for services to be ready...' &&
         sleep 10 &&
         alembic upgrade head &&
-        uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+        uvicorn app.main:app --host 0.0.0.0 --port 10000 --reload
       "
     networks:
       - behex_network
