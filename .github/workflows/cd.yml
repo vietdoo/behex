@@ -1,0 +1,53 @@
+name: CD to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    environment: EC2
+
+    steps:
+      - name: 🚀 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 
+      - name: 📂 Log checkout completion
+        run: |
+          echo "📂 Repository checked out"
+          echo "✅ Code checkout completed successfully!"
+
+      - name: 🔑 Set up SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: 🛠️ Debug SSH key
+        run: |
+          echo "🔐 Verifying SSH agent..."
+          ssh-add -l
+          echo "✅ SSH key loaded!"
+
+      - name: 🖥️ Deploy on EC2 via SSH
+        run: |
+          echo "🌐 Connecting to EC2 instance..."
+          ssh -v -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "\
+            echo 'ℹ️ Hostname: \$(hostname)' && \
+            cd behex && \
+            echo '🔄 Pulling latest changes from git...' && \
+            git pull origin  && \
+            echo '⚙️ Setting environment variables...' && \
+            export EXTERNAL_IP=\"http://\$(hostname -I | cut -f1 -d' ')\" && \
+            export CURR_DIR=\"\$(pwd)\" && \
+            echo 'ℹ️ EXTERNAL_IP: \$EXTERNAL_IP' && \
+            echo 'ℹ️ CURR_DIR: \$CURR_DIR' && \
+            echo '🛑 Stopping existing Docker containers...' && \
+            sudo docker compose down || true && \
+            echo '🚀 Starting Docker containers...' && \
+            sudo docker compose up --build -d && \
+            echo '✅ Deployment completed!' \
+          "
+          echo "🎉 Deployment to EC2 finished successfully!"
