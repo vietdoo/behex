@@ -56,7 +56,8 @@ async def root():
         "version": settings.APP_VERSION,
         "docs": "/api/docs",
         "redoc": "/api/redoc",
-        "health": "/health"
+        "health": "/health",
+        "api": "/api/v1"
     }
 
 # Health check endpoint
