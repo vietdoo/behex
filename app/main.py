@@ -55,6 +55,7 @@ async def root():
         "app": settings.APP_NAME,
         "version": settings.APP_VERSION,
         "docs": "/api/docs",
+        "redoc": "/api/redoc",
         "health": "/health"
     }
 
