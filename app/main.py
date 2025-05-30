@@ -49,8 +49,8 @@ app.add_middleware(
 # Include API router
 app.include_router(api_router, prefix="/api/v1")
 
-# WebSocket endpoint for chat
-app.websocket("/ws/chat")(websocket_endpoint)
+# WebSocket endpoint for chat (under API v1 path)
+app.websocket("/api/v1/ws/chat")(websocket_endpoint)
 
 # Root endpoint
 @app.get("/")
@@ -62,7 +62,7 @@ async def root():
         "redoc": "/api/redoc",
         "health": "/health",
         "api": "/api/v1",
-        "websocket": "/ws/chat"
+        "websocket": "/api/v1/ws/chat"
     }
 
 # Health check endpoint

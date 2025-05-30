@@ -125,21 +125,32 @@ class ConnectionManager:
     async def broadcast_to_room(self, conversation_id: int, message: dict, exclude_user: Optional[int] = None):
         """Broadcast message to all users in a conversation room"""
         if conversation_id not in self.room_participants:
+            logger.warning(f"No participants found in room {conversation_id}")
             return
         
         participants = self.room_participants[conversation_id].copy()
+        logger.info(f"Broadcasting to room {conversation_id}: {len(participants)} participants")
+        
         if exclude_user:
             participants.discard(exclude_user)
+            logger.info(f"Excluding user {exclude_user}, now broadcasting to {len(participants)} participants")
         
         # Send to all participants
         tasks = []
+        successful_sends = 0
         for user_id in participants:
             if user_id in self.active_connections:
                 task = self.send_personal_message(user_id, message)
                 tasks.append(task)
+            else:
+                logger.warning(f"User {user_id} not in active connections")
         
         if tasks:
-            await asyncio.gather(*tasks, return_exceptions=True)
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            successful_sends = sum(1 for result in results if result is True)
+            logger.info(f"Successfully sent message to {successful_sends}/{len(tasks)} participants")
+        else:
+            logger.warning(f"No active connections found for room {conversation_id}")
     
     async def broadcast_message(self, conversation_id: int, message_data: dict, sender_id: int):
         """Broadcast new message to conversation participants"""

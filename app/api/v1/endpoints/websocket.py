@@ -39,6 +39,24 @@ async def get_user_from_token(token: str, db: AsyncSession) -> Optional[User]:
         return None
 
 
+async def auto_join_user_rooms(user_id: int, db: AsyncSession):
+    """Automatically join user to all their conversation rooms"""
+    try:
+        from app.repositories.chat import ChatRepository
+        chat_repo = ChatRepository(db)
+        
+        # Get all user's conversations
+        conversations, _ = await chat_repo.get_user_conversations(user_id, limit=1000, offset=0)
+        
+        # Join user to all conversation rooms
+        for conversation in conversations:
+            connection_manager.join_room(user_id, conversation.id)
+            
+        logger.info(f"User {user_id} auto-joined to {len(conversations)} conversation rooms")
+    except Exception as e:
+        logger.error(f"Error auto-joining user {user_id} to rooms: {e}")
+
+
 async def websocket_endpoint(
     websocket: WebSocket,
     token: str = Query(..., description="JWT access token"),
@@ -53,6 +71,9 @@ async def websocket_endpoint(
     
     # Connect user to WebSocket
     await connection_manager.connect(websocket, user.id)
+    
+    # Automatically join user to all their conversation rooms
+    await auto_join_user_rooms(user.id, db)
     
     try:
         # Initialize chat service

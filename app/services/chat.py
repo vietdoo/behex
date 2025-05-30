@@ -119,12 +119,28 @@ class ChatService:
         # Convert to response format
         message_response = await self._build_message_response(message)
         
-        # Broadcast message via WebSocket
+        # Ensure all conversation participants are in the room before broadcasting
+        participant_ids = await self._ensure_participants_in_room(message_data.conversation_id)
+        
+        # Broadcast message via WebSocket (primary method)
         await connection_manager.broadcast_message(
             message_data.conversation_id,
             message_response.dict(),
             user_id
         )
+        
+        # Fallback: Send directly to any participants who might not be in the room
+        message_data_dict = message_response.dict()
+        outgoing_message = {
+            "type": "message",
+            "conversation_id": message_data.conversation_id,
+            "message": message_data_dict,
+            "timestamp": message_response.created_at.isoformat()
+        }
+        
+        for participant_id in participant_ids:
+            if participant_id != user_id and connection_manager.is_user_online(participant_id):
+                await connection_manager.send_personal_message(participant_id, outgoing_message)
         
         return message_response
     
@@ -268,6 +284,25 @@ class ChatService:
             await connection_manager.broadcast_typing_indicator(
                 conversation_id, user_id, is_typing, user_data
             )
+    
+    async def _ensure_participants_in_room(self, conversation_id: int):
+        """Ensure all active participants of a conversation are joined to the WebSocket room"""
+        # Get all active participants in the conversation
+        conversation = await self.chat_repo.get_conversation_by_id(conversation_id)
+        if not conversation:
+            return
+        
+        # Join all active participants who are online to the room
+        for participant in conversation.participants:
+            if participant.is_active:
+                user_id = participant.user_id
+                # Only join if user is connected to WebSocket
+                if connection_manager.is_user_online(user_id):
+                    connection_manager.join_room(user_id, conversation_id)
+        
+        # Also broadcast directly to all online participants who might not be in the room yet
+        # This ensures message delivery even if room management fails
+        return [p.user_id for p in conversation.participants if p.is_active]
     
     async def _build_conversation_response(self, conversation, user_id: int) -> Conversation:
         """Build conversation response with additional data"""

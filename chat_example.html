@@ -121,7 +121,7 @@
                 return;
             }
 
-            const wsUrl = `ws://localhost:10000/ws/chat?token=${encodeURIComponent(token)}`;
+            const wsUrl = `ws://localhost:10000/api/v1/ws/chat?token=${encodeURIComponent(token)}`;
             
             try {
                 ws = new WebSocket(wsUrl);
