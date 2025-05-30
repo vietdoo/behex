@@ -6,6 +6,7 @@ from app.core.config import settings
 from app.core.redis import redis_client
 from app.core.minio import minio_client
 from app.api.v1.router import api_router
+from app.api.v1.endpoints.websocket import websocket_endpoint
 
 
 @asynccontextmanager
@@ -48,6 +49,9 @@ app.add_middleware(
 # Include API router
 app.include_router(api_router, prefix="/api/v1")
 
+# WebSocket endpoint for chat
+app.websocket("/ws/chat")(websocket_endpoint)
+
 # Root endpoint
 @app.get("/")
 async def root():
@@ -57,7 +61,8 @@ async def root():
         "docs": "/api/docs",
         "redoc": "/api/redoc",
         "health": "/health",
-        "api": "/api/v1"
+        "api": "/api/v1",
+        "websocket": "/ws/chat"
     }
 
 # Health check endpoint

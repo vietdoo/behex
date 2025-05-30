@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Behex Chat Example</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 20px; 
+        }
+        .chat-container { 
+            border: 1px solid #ddd; 
+            height: 400px; 
+            overflow-y: auto; 
+            padding: 10px; 
+            margin-bottom: 10px; 
+            background-color: #f9f9f9;
+        }
+        .message { 
+            margin-bottom: 10px; 
+            padding: 8px; 
+            border-radius: 5px; 
+        }
+        .own-message { 
+            background-color: #007bff; 
+            color: white; 
+            text-align: right; 
+        }
+        .other-message { 
+            background-color: #e9ecef; 
+        }
+        .typing-indicator { 
+            font-style: italic; 
+            color: #666; 
+        }
+        .input-container { 
+            display: flex; 
+            gap: 10px; 
+        }
+        input, button { 
+            padding: 10px; 
+        }
+        input { 
+            flex: 1; 
+        }
+        .status { 
+            margin-bottom: 10px; 
+            padding: 10px; 
+            border-radius: 5px; 
+        }
+        .connected { 
+            background-color: #d4edda; 
+            color: #155724; 
+        }
+        .disconnected { 
+            background-color: #f8d7da; 
+            color: #721c24; 
+        }
+        .error { 
+            background-color: #fff3cd; 
+            color: #856404; 
+        }
+        .config { 
+            margin-bottom: 20px; 
+            padding: 15px; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+        }
+    </style>
+</head>
+<body>
+    <h1>Behex Chat WebSocket Example</h1>
+    
+    <div class="config">
+        <h3>Configuration</h3>
+        <div>
+            <label>JWT Token: </label>
+            <input type="text" id="tokenInput" placeholder="Enter your JWT access token" style="width: 100%; margin-bottom: 10px;">
+        </div>
+        <div>
+            <label>Conversation ID: </label>
+            <input type="number" id="conversationInput" placeholder="Enter conversation ID" style="width: 200px; margin-bottom: 10px;">
+        </div>
+        <div>
+            <button onclick="connectWebSocket()">Connect</button>
+            <button onclick="disconnectWebSocket()">Disconnect</button>
+        </div>
+    </div>
+    
+    <div id="status" class="status disconnected">Disconnected</div>
+    
+    <div id="chatContainer" class="chat-container"></div>
+    
+    <div class="input-container">
+        <input type="text" id="messageInput" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
+        <button onclick="sendMessage()">Send</button>
+        <button onclick="sendTyping(true)">Start Typing</button>
+        <button onclick="sendTyping(false)">Stop Typing</button>
+    </div>
+    
+    <div style="margin-top: 20px;">
+        <h3>Example Messages</h3>
+        <button onclick="sendPing()">Send Ping</button>
+        <button onclick="markAsRead()">Mark as Read</button>
+    </div>
+
+    <script>
+        let ws = null;
+        let conversationId = null;
+        let currentUser = null;
+
+        function connectWebSocket() {
+            const token = document.getElementById('tokenInput').value;
+            conversationId = document.getElementById('conversationInput').value;
+            
+            if (!token) {
+                updateStatus('Please enter a JWT token', 'error');
+                return;
+            }
+
+            const wsUrl = `ws://localhost:10000/ws/chat?token=${encodeURIComponent(token)}`;
+            
+            try {
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = function(event) {
+                    updateStatus('Connected to WebSocket', 'connected');
+                    addMessage('System', 'Connected to chat server', 'system');
+                };
+                
+                ws.onmessage = function(event) {
+                    const data = JSON.parse(event.data);
+                    handleWebSocketMessage(data);
+                };
+                
+                ws.onclose = function(event) {
+                    updateStatus('WebSocket connection closed', 'disconnected');
+                    addMessage('System', 'Disconnected from chat server', 'system');
+                };
+                
+                ws.onerror = function(error) {
+                    updateStatus('WebSocket error occurred', 'error');
+                    addMessage('System', 'Connection error: ' + error.message, 'error');
+                };
+            } catch (error) {
+                updateStatus('Failed to connect: ' + error.message, 'error');
+            }
+        }
+
+        function disconnectWebSocket() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        }
+
+        function handleWebSocketMessage(data) {
+            switch (data.type) {
+                case 'message':
+                    if (data.message) {
+                        addMessage(
+                            data.message.sender.username, 
+                            data.message.content, 
+                            'other'
+                        );
+                    }
+                    break;
+                    
+                case 'typing':
+                    if (data.data && data.data.user) {
+                        const typingText = data.data.is_typing 
+                            ? `${data.data.user.username} is typing...`
+                            : `${data.data.user.username} stopped typing`;
+                        showTypingIndicator(typingText, data.data.is_typing);
+                    }
+                    break;
+                    
+                case 'read_receipt':
+                    if (data.data && data.data.user) {
+                        addMessage('System', `${data.data.user.username} read the conversation`, 'system');
+                    }
+                    break;
+                    
+                case 'user_online':
+                case 'user_offline':
+                    const status = data.type === 'user_online' ? 'online' : 'offline';
+                    addMessage('System', `User ${data.data.user_id} is now ${status}`, 'system');
+                    break;
+                    
+                case 'error':
+                    addMessage('Error', data.data.message, 'error');
+                    break;
+                    
+                case 'pong':
+                    addMessage('System', 'Received pong from server', 'system');
+                    break;
+                    
+                default:
+                    console.log('Unknown message type:', data);
+            }
+        }
+
+        function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                updateStatus('Not connected to WebSocket', 'error');
+                return;
+            }
+            
+            if (!message) {
+                return;
+            }
+            
+            if (!conversationId) {
+                updateStatus('Please enter a conversation ID', 'error');
+                return;
+            }
+
+            const messageData = {
+                type: 'message',
+                conversation_id: parseInt(conversationId),
+                content: message,
+                message_type: 'text'
+            };
+
+            ws.send(JSON.stringify(messageData));
+            addMessage('You', message, 'own');
+            messageInput.value = '';
+        }
+
+        function sendTyping(isTyping) {
+            if (!ws || ws.readyState !== WebSocket.OPEN || !conversationId) {
+                return;
+            }
+
+            const typingData = {
+                type: 'typing',
+                conversation_id: parseInt(conversationId),
+                content: isTyping ? 'true' : 'false'
+            };
+
+            ws.send(JSON.stringify(typingData));
+        }
+
+        function markAsRead() {
+            if (!ws || ws.readyState !== WebSocket.OPEN || !conversationId) {
+                return;
+            }
+
+            const readData = {
+                type: 'read_receipt',
+                conversation_id: parseInt(conversationId)
+            };
+
+            ws.send(JSON.stringify(readData));
+            addMessage('System', 'Marked conversation as read', 'system');
+        }
+
+        function sendPing() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                return;
+            }
+
+            const pingData = {
+                type: 'ping'
+            };
+
+            ws.send(JSON.stringify(pingData));
+            addMessage('System', 'Sent ping to server', 'system');
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function addMessage(sender, content, type) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}-message`;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            messageDiv.innerHTML = `<strong>${sender}</strong> <small>(${timestamp})</small><br>${content}`;
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function showTypingIndicator(text, isTyping) {
+            const existingIndicator = document.getElementById('typingIndicator');
+            if (existingIndicator) {
+                existingIndicator.remove();
+            }
+
+            if (isTyping) {
+                const chatContainer = document.getElementById('chatContainer');
+                const typingDiv = document.createElement('div');
+                typingDiv.id = 'typingIndicator';
+                typingDiv.className = 'typing-indicator';
+                typingDiv.textContent = text;
+                chatContainer.appendChild(typingDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+                
+                // Auto-remove after 3 seconds
+                setTimeout(() => {
+                    if (document.getElementById('typingIndicator')) {
+                        document.getElementById('typingIndicator').remove();
+                    }
+                }, 3000);
+            }
+        }
+
+        function updateStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        // Auto-focus message input
+        document.getElementById('messageInput').focus();
+    </script>
+</body>
+</html> 
