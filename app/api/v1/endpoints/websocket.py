@@ -51,9 +51,12 @@ async def auto_join_user_rooms(user_id: int, db: AsyncSession):
         # Join user to all conversation rooms
         for conversation in conversations:
             connection_manager.join_room(user_id, conversation.id)
-            
+        
+        print(f"[BEHEX DEBUG] User {user_id} auto-joined to {len(conversations)} \
+            conversation rooms: {[conversation.id for conversation in conversations]}")
         logger.info(f"User {user_id} auto-joined to {len(conversations)} conversation rooms")
     except Exception as e:
+        print(f"[BEHEX DEBUG] Error auto-joining user {user_id} to rooms: {e}")
         logger.error(f"Error auto-joining user {user_id} to rooms: {e}")
 
 
@@ -63,9 +66,12 @@ async def websocket_endpoint(
     db: AsyncSession = Depends(get_db)
 ):
     """WebSocket endpoint for real-time chat"""
+    print(f"[BEHEX DEBUG] Websocket endpoint called with token: {token}")
     user = await get_user_from_token(token, db)
+    print(f"[BEHEX DEBUG] Websocket user: {user.username if user else 'None'}")
     
     if not user:
+        print(f"[BEHEX DEBUG] Websocket user not found")
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
     
@@ -122,11 +128,14 @@ async def websocket_endpoint(
                 continue
     
     except WebSocketDisconnect:
+        print(f"[BEHEX DEBUG] Websocket disconnected")
         pass
     except Exception as e:
+        print(f"[BEHEX DEBUG] Websocket error: {e}")
         logger.error(f"WebSocket error for user {user.id}: {e}")
     finally:
         # Disconnect user
+        print(f"[BEHEX DEBUG] Websocket finally")
         connection_manager.disconnect(user.id)
 
 
