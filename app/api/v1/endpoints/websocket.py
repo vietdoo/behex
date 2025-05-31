@@ -125,6 +125,10 @@ async def websocket_endpoint(
                     "Internal server error", 
                     "INTERNAL_ERROR"
                 )
+                print(f"[BEHEX DEBUG] Error handling WebSocket message for user {user.id}: {e}")
+                await connection_manager.disconnect(user.id)
+                await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+                break
                 continue
     
     except WebSocketDisconnect:
